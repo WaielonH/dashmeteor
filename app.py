@@ -32,6 +32,8 @@ def create_map(data):
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
+server = app.server
+
 app.layout = html.Div(
     [
         # This Row contains the Headings
