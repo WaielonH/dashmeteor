@@ -2,7 +2,6 @@
 import pandas as pd
 import geopandas as gpd
 import plotly.express as px
-import osmnx as ox
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc, Input, Output
