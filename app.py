@@ -29,34 +29,6 @@ def create_map(data):
                             color_continuous_scale=px.colors.sequential.Sunsetdark)
     fig.update_layout(margin={'r': 0, 't': 0, 'l': 0, 'b': 0})
     return fig
-# Create default charts
-histogram_plot = px.bar((meteor_world_data
-                         .groupby('continent')
-                         .count()
-                         .loc[:, ['pop_est']]
-                         .rename(columns={'pop_est': 'count'})
-                         .reset_index()
-                         .sort_values('count', ascending=False)),
-                        x='continent',
-                        y='count',
-                        template='plotly_dark')
-histogram_plot.update_layout(margin={'r': 0, 't': 0, 'l': 0, 'b': 0},
-                             plot_bgcolor='rgba(0,0,0,0)',
-                             paper_bgcolor='rgba(0,0,0,0)')
-
-line_plot = px.line((meteor_world_data
-                     .groupby(['continent', 'year'])
-                     .count()
-                     .loc[:, ['pop_est']]
-                     .rename(columns={'pop_est': 'count'})
-                     .reset_index()),
-                    x='year',
-                    y='count',
-                    color='continent',
-                    template='plotly_dark')
-line_plot.update_layout(margin={'r': 0, 't': 0, 'l': 0, 'b': 0},
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)')
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
@@ -86,11 +58,8 @@ app.layout = html.Div(
                             html.H3('Filter Tools'),
                             html.Hr(),
                             html.H4('Year range:'),
-                            dcc.DatePickerRange(
-                                id='yearrange',
-                                display_format='YYYY',
-                                start_date='0860',
-                                end_date='2013'),
+                            dcc.Input(id='yearlow', type='number', value=860),
+                            dcc.Input(id='yearhigh', type='number', value=2013),
                             html.Hr(),
                             html.H4('Type of Meteor'),
                             dcc.RadioItems(
@@ -98,7 +67,23 @@ app.layout = html.Div(
                                 options=['Fell', 'Found', 'Both'],
                                 value='Both',
                                 labelStyle={'display': 'block'}
-                            )
+                            ),
+                            html.Hr(),
+                            html.H4('Summary statistic'),
+                            dbc.DropdownMenu(
+                                label="Menu",
+                                children=[
+                                    dbc.DropdownMenuItem("count"),
+                                    dbc.DropdownMenuItem("mean mass"),
+                                    dbc.DropdownMenuItem("median mass"),
+                                ],
+                            ),
+                            html.Hr(),
+                            html.H4('Mass of Meteorite'),
+                            dcc.RangeSlider(id='slidermass',
+                                            min=0,
+                                            max=data['mass'].max(),
+                                            value=[0, data['mass'].max()])
                         ]
                     ),
                     width=2
@@ -111,7 +96,7 @@ app.layout = html.Div(
                         dbc.Row(
                             dbc.Col(
                                 html.Div(
-                                    dcc.Graph(id='map_plot', figure={})
+                                    dcc.Graph(id='map_plot', figure=create_map(data))
                                 ),
                                 width=10
                             )
@@ -122,12 +107,12 @@ app.layout = html.Div(
                             [
                                 dbc.Col(
                                     html.Div(
-                                        dcc.Graph(id='histogram', figure=histogram_plot)
+                                        dcc.Graph(id='histogram', figure={})
                                     )
                                 ),
                                 dbc.Col(
                                     html.Div(
-                                        dcc.Graph(id='line', figure=line_plot)
+                                        dcc.Graph(id='line', figure={})
                                     )
                                 )
                             ]
@@ -139,24 +124,97 @@ app.layout = html.Div(
     ]
 )
 
+# @app.callback(
+#     Output('map_plot', 'children'),
+#     Input('yearlow', 'value'),
+#     Input('yearhigh', 'value')
+# )
+# def update_map_plot(yearlow, yearhigh):
+#     filtered_data = data.query('year >= @yearlow and year <= yearhigh')
+#     fig = px.scatter_mapbox(filtered_data,
+#                             lat='reclat',
+#                             lon='reclong',
+#                             size='mass',
+#                             size_max=75,
+#                             color='mass',
+#                             mapbox_style='carto-darkmatter',
+#                             center={'lat': 0, 'lon': 0},
+#                             zoom=1,
+#                             template='plotly_dark',
+#                             color_continuous_scale=px.colors.sequential.Sunsetdark)
+#     fig.update_layout(margin={'r': 0, 't': 0, 'l': 0, 'b': 0})
+#     return fig
+
+# callback for updating histogram plot
 @app.callback(
-    Output(component_id='map_plot', component_property='figure'),
-    Input(component_id='yearrange', component_property='value')
+    Output('histogram', 'figure'),
+    Input('yearlow', 'value'),
+    Input('yearhigh', 'value'),
+    Input('falltype', 'value'),
+    Input('slidermass', 'value')
 )
-def update_map_plot(yearfilter):
-    filtered_data = data.query('year >= @yearfilter[0] & year <= @yearfilter[1]')
-    fig = px.scatter_mapbox(filtered_data,
-                            lat='reclat',
-                            lon='reclong',
-                            size='mass',
-                            size_max=75,
-                            color='mass',
-                            mapbox_style='carto-darkmatter',
-                            center={'lat': 0, 'lon': 0},
-                            zoom=1,
-                            template='plotly_dark',
-                            color_continuous_scale=px.colors.sequential.Sunsetdark)
-    fig.update_layout(margin={'r': 0, 't': 0, 'l': 0, 'b': 0})
+def update_histogram(yearl, yearh, ftype, rmass):
+
+    massl, massh = rmass[0], rmass[1]
+    filtered_data = meteor_world_data.query("year <= @yearh and year >= @yearl")
+    filtered_data = filtered_data.query("mass >= @massl and mass <= @massh")
+    if ftype == 'Fell':
+        filtered_data = filtered_data.query("fall == 'Fell'")
+    elif ftype == 'Found':
+        filtered_data = filtered_data.query("fall == 'Found'")
+    else:
+        pass
+
+    fig = px.bar((filtered_data
+                  .groupby('continent')
+                  .count()
+                  .loc[:, ['pop_est']]
+                  .rename(columns={'pop_est': 'count'})
+                  .reset_index()
+                  .sort_values('count', ascending=False)),
+                 x='continent',
+                 y='count',
+                template='plotly_dark')
+    fig.update_layout(margin={'r': 0, 't': 0, 'l': 0, 'b': 0},
+                      plot_bgcolor='rgba(0,0,0,0)',
+                      paper_bgcolor='rgba(0,0,0,0)')
     return fig
+
+# callback for updating line plot
+@app.callback(
+    Output('line', 'figure'),
+    Input('yearlow', 'value'),
+    Input('yearhigh', 'value'),
+    Input('falltype', 'value'),
+    Input('slidermass', 'value')
+)
+def update_line(yearl, yearh, ftype, rmass):
+
+    massl, massh = rmass[0], rmass[1]
+    filtered_data = meteor_world_data.query("year <= @yearh and year >= @yearl")
+    filtered_data = filtered_data.query("mass <= @massh and mass >= @massl")
+    if ftype == 'Fell':
+        filtered_data = filtered_data.query("fall == 'Fell'")
+    elif ftype == 'Found':
+        filtered_data = filtered_data.query("fall == 'Found'")
+    else:
+        pass
+
+    fig = px.line((filtered_data
+                   .groupby(['continent', 'year'])
+                   .count()
+                   .loc[:, ['pop_est']]
+                   .rename(columns={'pop_est': 'count'})
+                   .reset_index()),
+                  x='year',
+                  y='count',
+                  color='continent',
+                  template='plotly_dark')
+    fig.update_layout(margin={'r': 0, 't': 0, 'l': 0, 'b': 0},
+                      plot_bgcolor='rgba(0,0,0,0)',
+                      paper_bgcolor='rgba(0,0,0,0)')
+    
+    return fig
+
 if __name__ == '__main__':
     app.run_server(debug=True)
