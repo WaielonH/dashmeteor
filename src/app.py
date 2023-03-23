@@ -7,7 +7,7 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc, Input, Output
 
 # Read data into the application
-data = pd.read_csv('data/clean/clean_meteorite_landings.csv')
+data = pd.read_csv('../data/clean/clean_meteorite_landings.csv')
 data = gpd.GeoDataFrame(data, crs='EPSG:4326', geometry=gpd.points_from_xy(data['reclong'], data['reclat']))
 world_data = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 world_data = world_data.to_crs('EPSG:4326')
