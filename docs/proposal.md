@@ -1,7 +1,5 @@
 # Meteorite Dashboard Proposal
 * Authors: Waiel Tinwala
-<br>
-<br>
 # Section 1: Motivation and Purpose
 
 Target audience: Space enthusiasts, amateur astronomers, and anyone interested in meteorites.
