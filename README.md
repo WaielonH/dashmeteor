@@ -1,7 +1,7 @@
 # Meteorite Dashboard
 * author: Waiel TInwala
 * link to the app: https://meteorite-dashboard.onrender.com
-* link to the proposal: INSERT LINK HERE
+* link to the proposal: https://github.com/WaielonH/dashmeteor/blob/main/docs/proposal.md
 
 # Dashboard Motivation
 
